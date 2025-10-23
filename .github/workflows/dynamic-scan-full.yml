@@ -1,0 +1,51 @@
+name: Dynamic Full Scan
+
+on:
+  #push:
+  workflow_dispatch: # to allow to run manually
+
+permissions: # https://docs.github.com/en/actions/using-jobs/assigning-permissions-to-jobs
+  contents: read
+  issues: write
+
+
+jobs:
+
+  DAST-Full-Scan:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout Sources
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: 8
+          distribution: 'temurin'
+
+      - name: Setup Maven Dependency Cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Build with Maven
+        run: cd marathon || :; mvn clean install -DskipTests
+
+      - name: Deploy Marathon for Local Integration Tests
+        run: cd marathon || :; cd integration && ./start-integration.sh
+
+      # https://www.zaproxy.org/docs/docker/full-scan/
+      - name: OWASP ZAP Full Scan
+        uses: zaproxy/action-full-scan@75ee1686750ab1511a73b26b77a2aedd295053ed
+        with:
+          target: 'http://localhost:9090/marathon/showMarathons.page'
+          cmd_options: '-a'
+          rules_file_name: 'rules.tsv'
+ 
