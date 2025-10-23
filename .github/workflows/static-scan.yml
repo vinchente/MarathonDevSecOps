@@ -48,7 +48,7 @@ jobs:
           path: target/bom.json
 
 # ======================================================
- 
+
       - name: Grype Dependency Scanner (Report)
         id: scan
         uses: anchore/scan-action@be7a22da4f22dde446c4c4c099887ff5b256526c
@@ -63,8 +63,7 @@ jobs:
           path: ${{ steps.scan.outputs.sarif }}
 
 # ======================================================
- 
- 
+
       - name: Download SpotBugs CLI + FindSecBugs Rule Pack
         run: |
           wget -O spotbugs.tgz https://github.com/spotbugs/spotbugs/releases/download/4.9.3/spotbugs-4.9.3.tgz
@@ -84,4 +83,18 @@ jobs:
         with: # Yep, you can open this file in your IDE: Just drag and drop it into IntelliJ IDEA or Visual Studio Code
           name: spotbugs-scan-results.sarif
           path: /tmp/spotbugs-results.sarif
-          
+
+# ======================================================
+
+      - name: Hadolint Dockerfile Linter
+        uses: hadolint/hadolint-action@54c9adbab1582c2ef04b2016b760714a4bfde3cf
+        with:
+          dockerfile: Dockerfile
+          recursive: true
+          no-fail: true
+          format: sarif
+
+      - name: Write HADOLINT_RESULTS to SARIF file
+        run: echo "$HADOLINT_RESULTS" > /tmp/hadolint-results.sarif
+        env:
+          HADOLINT_RESULTS: ${{ env.HADOLINT_RESULTS }}
